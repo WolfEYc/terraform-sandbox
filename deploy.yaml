@@ -1,0 +1,7 @@
+- name: Deploy to EC2 via SSM
+  run: |
+    aws ssm send-command \
+      --targets "Key=tag:Name,Values=myapp-server" \
+      --document-name "AWS-RunShellScript" \
+      --comment "Deploy new binary" \
+      --parameters 'commands=["aws s3 cp s3://mybucket/myapp /usr/local/bin/myapp","systemctl restart myapp"]'

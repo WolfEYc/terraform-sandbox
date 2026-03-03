@@ -1,0 +1,6 @@
+- name: Build Go binary
+  run: GOOS=linux GOARCH=amd64 go build -o myapp main.go
+
+- name: Upload to S3
+  run: aws s3 cp myapp s3://mybucket/myapp
+
