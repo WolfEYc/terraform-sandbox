@@ -66,11 +66,7 @@ resource "aws_subnet" "private" {
 provider "cloudflare" {}
 
 data "cloudflare_zone" "main" {
-  account = {
-    id = "c553860bebc5b49efd6f08f079cec3a2"
-  }
-  name = "wolfeycode.com"
-  type = "full"
+  zone_id = "c4f956c7bfc63cd0b0751ebf00d38134"
 }
 resource "cloudflare_dns_record" "app" {
   zone_id = data.cloudflare_zone.main.id
