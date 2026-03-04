@@ -22,36 +22,12 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Terraform   = "true"
-      Project     = "basics-3"
-      Environment = "dev"
-      Owner       = "isaacw"
+      Terraform      = "true"
+      Project        = "basics-3"
+      Environment    = "dev"
+      Owner          = "isaacw"
+      awsApplication = "arn:aws:resource-groups:us-east-1:739605955065:group/basics-3/0agd0b3jx5salneodxtv3p64mh"
     }
-  }
-}
-
-resource "aws_resourcegroups_group" "basics_3" {
-  name        = "basics-3"
-  description = "temp terraform example"
-
-  resource_query {
-    query = jsonencode({
-      ResourceTypeFilters = ["AWS::AllSupported"]
-      TagFilters = [
-        {
-          Key    = "Environment"
-          Values = ["dev"]
-        },
-        {
-          Key    = "Project"
-          Values = ["basics-3"]
-        },
-      ]
-    })
-  }
-
-  tags = {
-    ManagedBy = "Terraform"
   }
 }
 
