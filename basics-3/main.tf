@@ -21,10 +21,13 @@ provider "aws" {
   region = "us-east-1"
 }
 
-data "aws_vpc" "main" {
+resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
 }
 
+data "aws_availability_zones" "available" {
+  state = "available"
+}
 resource "aws_subnet" "public" {
   count                   = 2 # one per AZ
   vpc_id                  = aws_vpc.main.id
@@ -43,15 +46,20 @@ resource "aws_subnet" "private" {
 
 provider "cloudflare" {}
 
-data "cloudflare_zone" "main" {
+resource "cloudflare_zone" "main" {
+  account = {
+    id = "c553860bebc5b49efd6f08f079cec3a2"
+  }
   name = "wolfeycode.com"
+  type = "full"
 }
-resource "cloudflare_record" "app" {
-  zone_id = data.cloudflare_zone.main.id
+resource "cloudflare_dns_record" "app" {
+  zone_id = cloudflare_zone.main.id
   name    = "app"
-  value   = aws_lb.lb.dns_name
+  content = aws_lb.lb.dns_name
   type    = "CNAME"
   proxied = true
+  ttl     = 1
 }
 
 resource "aws_acm_certificate" "app" {
@@ -63,18 +71,23 @@ resource "aws_acm_certificate" "app" {
   }
 }
 
-resource "cloudflare_record" "cert_validation" {
-  zone_id = data.cloudflare_zone.main.id
-  name    = aws_acm_certificate.app.domain_validation_options[0].resource_record_name
-  value   = aws_acm_certificate.app.domain_validation_options[0].resource_record_value
-  type    = aws_acm_certificate.app.domain_validation_options[0].resource_record_type
+resource "cloudflare_dns_record" "cert_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.app.domain_validation_options :
+    dvo.domain_name => dvo
+  }
+
+  zone_id = cloudflare_zone.main.id
+  name    = each.value.resource_record_name
+  content = each.value.resource_record_value
+  type    = each.value.resource_record_type
   ttl     = 60
   proxied = false
 }
 
 resource "aws_acm_certificate_validation" "app" {
   certificate_arn         = aws_acm_certificate.app.arn
-  validation_record_fqdns = [cloudflare_record.cert_validation.hostname]
+  validation_record_fqdns = [for record in cloudflare_dns_record.cert_validation : record.name]
 }
 
 resource "aws_security_group" "alb" {
@@ -99,7 +112,7 @@ resource "aws_security_group" "alb" {
 resource "aws_lb" "lb" {
   name               = "web-lb"
   load_balancer_type = "application"
-  subnets            = [aws_subnet.public[*].id]
+  subnets            = aws_subnet.public[*].id
   security_groups    = [aws_security_group.alb.id]
 }
 
@@ -139,7 +152,7 @@ resource "aws_lb_target_group" "instances" {
   name     = "instances-tg"
   port     = 8080
   protocol = "HTTP"
-  vpc_id   = data.aws_vpc.default_vpc.id
+  vpc_id   = aws_vpc.main.id
 
   health_check {
     path                = "/"
@@ -174,7 +187,7 @@ resource "aws_security_group" "instances" {
 resource "aws_instance" "instance_1" {
   ami             = "ami-011899242bb902164"
   instance_type   = "t3.micro"
-  subnet_id       = aws_subnet.private[*].id
+  subnet_id       = aws_subnet.private[0].id
   security_groups = [aws_security_group.instances.name]
   user_data       = <<-EOF
       #!/bin/bash
@@ -191,7 +204,7 @@ resource "aws_lb_target_group_attachment" "instance_1" {
 resource "aws_instance" "instance_2" {
   ami             = "ami-011899242bb902164"
   instance_type   = "t3.micro"
-  subnet_id       = aws_subnet.private[*].id
+  subnet_id       = aws_subnet.private[1].id
   security_groups = [aws_security_group.instances.name]
   user_data       = <<-EOF
       #!/bin/bash
