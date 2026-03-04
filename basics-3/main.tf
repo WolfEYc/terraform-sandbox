@@ -19,6 +19,15 @@ terraform {
 
 provider "aws" {
   region = "us-east-1"
+
+  default_tags {
+    tags = {
+      Terraform   = "true"
+      Project     = "basics-3"
+      Environment = "dev"
+      Owner       = "isaacw"
+    }
+  }
 }
 
 resource "aws_vpc" "main" {
