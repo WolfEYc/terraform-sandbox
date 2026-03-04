@@ -44,7 +44,7 @@ resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
   route {
-    cidr_block = "0.0.0.0/0" # allow inbound traffic from anywhere, maybe restrict this to cflare later
+    cidr_block = "0.0.0.0/0" # allow inbound traffic from anywhere
     gateway_id = aws_internet_gateway.gw.id
   }
 }
@@ -58,14 +58,14 @@ resource "aws_route_table_association" "public_assoc" { # map public subnet to p
 resource "aws_subnet" "private" {
   count                   = 2 # one per AZ
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = cidrsubnet(aws_vpc.main.cidr_block, 8, count.index)
+  cidr_block              = cidrsubnet(aws_vpc.main.cidr_block, 8, length(aws_subnet.public) + count.index)
   availability_zone       = data.aws_availability_zones.available.names[count.index]
   map_public_ip_on_launch = false
 }
 
 provider "cloudflare" {}
 
-resource "cloudflare_zone" "main" {
+data "cloudflare_zone" "main" {
   account = {
     id = "c553860bebc5b49efd6f08f079cec3a2"
   }
@@ -73,7 +73,7 @@ resource "cloudflare_zone" "main" {
   type = "full"
 }
 resource "cloudflare_dns_record" "app" {
-  zone_id = cloudflare_zone.main.id
+  zone_id = data.cloudflare_zone.main.id
   name    = "app"
   content = aws_lb.lb.dns_name
   type    = "CNAME"
@@ -96,7 +96,7 @@ resource "cloudflare_dns_record" "cert_validation" {
     dvo.domain_name => dvo
   }
 
-  zone_id = cloudflare_zone.main.id
+  zone_id = data.cloudflare_zone.main.id
   name    = each.value.resource_record_name
   content = each.value.resource_record_value
   type    = each.value.resource_record_type
@@ -205,11 +205,11 @@ resource "aws_security_group" "instances" {
 }
 
 resource "aws_instance" "instance_1" {
-  ami             = "ami-011899242bb902164"
-  instance_type   = "t3.micro"
-  subnet_id       = aws_subnet.private[0].id
-  security_groups = [aws_security_group.instances.name]
-  user_data       = <<-EOF
+  ami                    = "ami-011899242bb902164"
+  instance_type          = "t3.micro"
+  subnet_id              = aws_subnet.private[0].id
+  vpc_security_group_ids = [aws_security_group.instances.id]
+  user_data              = <<-EOF
       #!/bin/bash
       echo "Hello, World 1" > index.html
       python3 -m http.server 8080 &
@@ -242,7 +242,7 @@ resource "aws_db_instance" "db_instance" {
   allocated_storage   = 20
   storage_type        = "standard"
   engine              = "postgres"
-  engine_version      = "12.5"
+  engine_version      = "18.3"
   instance_class      = "db.t3.micro"
   username            = "foo"
   password            = "foobarbaz"
