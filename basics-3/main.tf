@@ -17,6 +17,11 @@ terraform {
   }
 }
 
+variable "env" {
+  description = "environment to deploy to"
+  type        = string
+}
+
 provider "aws" {
   region = "us-east-1"
 
@@ -24,7 +29,7 @@ provider "aws" {
     tags = {
       Terraform      = "true"
       Project        = "basics-3"
-      Environment    = "dev"
+      Environment    = var.env
       Owner          = "isaacw"
       awsApplication = "arn:aws:resource-groups:us-east-1:739605955065:group/basics-3/0agd0b3jx5salneodxtv3p64mh"
     }
