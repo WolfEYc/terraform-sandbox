@@ -219,6 +219,9 @@ resource "aws_instance" "instance_1" {
       echo "Hello, World 1" > index.html
       python3 -m http.server 8080 &
       EOF
+  tags = {
+    Name = "basic-1"
+  }
 }
 resource "aws_lb_target_group_attachment" "instance_1" {
   target_group_arn = aws_lb_target_group.instances.arn
@@ -236,6 +239,9 @@ resource "aws_instance" "instance_2" {
       echo "Hello, World 1" > index.html
       python3 -m http.server 8080 &
       EOF
+  tags = {
+    Name = "basic-2"
+  }
 }
 resource "aws_lb_target_group_attachment" "instance_2" {
   target_group_arn = aws_lb_target_group.instances.arn
