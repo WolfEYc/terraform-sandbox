@@ -36,6 +36,25 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 }
 
+resource "aws_internet_gateway" "gw" {
+  vpc_id = aws_vpc.main.id
+}
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0" # allow inbound traffic from anywhere, maybe restrict this to cflare later
+    gateway_id = aws_internet_gateway.gw.id
+  }
+}
+
+resource "aws_route_table_association" "public_assoc" { # map public subnet to public route table
+  count          = length(aws_subnet.public)
+  subnet_id      = aws_subnet.public[count.index].id
+  route_table_id = aws_route_table.public.id
+}
+
 resource "aws_subnet" "private" {
   count                   = 2 # one per AZ
   vpc_id                  = aws_vpc.main.id
@@ -114,6 +133,7 @@ resource "aws_lb" "lb" {
   load_balancer_type = "application"
   subnets            = aws_subnet.public[*].id
   security_groups    = [aws_security_group.alb.id]
+  internal           = false
 }
 
 resource "aws_lb_listener" "http" {
