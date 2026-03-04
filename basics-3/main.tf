@@ -41,52 +41,7 @@ resource "aws_subnet" "private" {
   map_public_ip_on_launch = false
 }
 
-resource "aws_security_group" "instances" {
-  name   = "instance-sg"
-  vpc_id = aws_vpc.main.id
-
-  ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-resource "aws_security_group" "alb" {
-  name   = "alb-sg"
-  vpc_id = aws_vpc.main.id
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-variable "cloudflare_api_token" {
-  type      = string
-  sensitive = true
-}
-
-provider "cloudflare" {
-  api_token = var.cloudflare_api_token
-}
+provider "cloudflare" {}
 
 data "cloudflare_zone" "main" {
   name = "wolfeycode.com"
@@ -120,6 +75,25 @@ resource "cloudflare_record" "cert_validation" {
 resource "aws_acm_certificate_validation" "app" {
   certificate_arn         = aws_acm_certificate.app.arn
   validation_record_fqdns = [cloudflare_record.cert_validation.hostname]
+}
+
+resource "aws_security_group" "alb" {
+  name   = "alb-sg"
+  vpc_id = aws_vpc.main.id
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 resource "aws_lb" "lb" {
@@ -175,6 +149,25 @@ resource "aws_lb_target_group" "instances" {
     timeout             = 3
     healthy_threshold   = 2
     unhealthy_threshold = 2
+  }
+}
+
+resource "aws_security_group" "instances" {
+  name   = "instance-sg"
+  vpc_id = aws_vpc.main.id
+
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
