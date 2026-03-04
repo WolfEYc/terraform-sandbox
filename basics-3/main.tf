@@ -21,50 +21,67 @@ provider "aws" {
   region = "us-east-1"
 }
 
-data "aws_vpc" "default_vpc" {
-  default = true
+data "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
 }
 
-data "aws_subnet_ids" "default_subnet" {
-  vpc_id = data.aws_vpc.default_vpc.id
+resource "aws_subnet" "public" {
+  count                   = 2 # one per AZ
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = cidrsubnet(aws_vpc.main.cidr_block, 8, count.index)
+  availability_zone       = data.aws_availability_zones.available.names[count.index]
+  map_public_ip_on_launch = true
+}
+
+resource "aws_subnet" "private" {
+  count                   = 2 # one per AZ
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = cidrsubnet(aws_vpc.main.cidr_block, 8, count.index)
+  availability_zone       = data.aws_availability_zones.available.names[count.index]
+  map_public_ip_on_launch = false
 }
 
 resource "aws_security_group" "instances" {
-  name = "instance-sg"
-}
+  name   = "instance-sg"
+  vpc_id = aws_vpc.main.id
 
-resource "aws_security_group_rule" "allow_http_inbound" {
-  type              = "ingress"
-  security_group_id = aws_security_group.instances.id
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-  from_port   = 8080
-  to_port     = 8080
-  protocol    = "tcp"
-  cidr_blocks = ["0.0.0.0/0"]
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 resource "aws_security_group" "alb" {
-  name = "alb-sg"
+  name   = "alb-sg"
+  vpc_id = aws_vpc.main.id
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
-resource "aws_security_group_rule" "alb_allow_http_inbound" {
-  type              = "ingress"
-  security_group_id = aws_security_group.alb.id
-
-  from_port   = 80
-  to_port     = 80
-  protocol    = "tcp"
-  cidr_blocks = ["0.0.0.0/0"]
-}
-
-resource "aws_security_group_rule" "alb_allow_all_outbound" {
-  type              = "egress"
-  security_group_id = aws_security_group.alb.id
-
-  from_port   = 0
-  to_port     = 0
-  protocol    = "-1"
-  cidr_blocks = ["0.0.0.0/0"]
+variable "cloudflare_api_token" {
+  type      = string
+  sensitive = true
 }
 
 provider "cloudflare" {
@@ -108,7 +125,7 @@ resource "aws_acm_certificate_validation" "app" {
 resource "aws_lb" "lb" {
   name               = "web-lb"
   load_balancer_type = "application"
-  subnets            = data.aws_subnet_ids.default_subnet.ids
+  subnets            = [aws_subnet.public[*].id]
   security_groups    = [aws_security_group.alb.id]
 }
 
@@ -164,6 +181,7 @@ resource "aws_lb_target_group" "instances" {
 resource "aws_instance" "instance_1" {
   ami             = "ami-011899242bb902164"
   instance_type   = "t3.micro"
+  subnet_id       = aws_subnet.private[*].id
   security_groups = [aws_security_group.instances.name]
   user_data       = <<-EOF
       #!/bin/bash
@@ -180,6 +198,7 @@ resource "aws_lb_target_group_attachment" "instance_1" {
 resource "aws_instance" "instance_2" {
   ami             = "ami-011899242bb902164"
   instance_type   = "t3.micro"
+  subnet_id       = aws_subnet.private[*].id
   security_groups = [aws_security_group.instances.name]
   user_data       = <<-EOF
       #!/bin/bash

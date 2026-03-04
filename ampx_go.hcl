@@ -7,7 +7,7 @@ resource "aws_vpc" "ampx_go" {
 }
 
 resource "aws_subnet" "public" {
-  count                   = 2  # one per AZ
+  count                   = 2 # one per AZ
   vpc_id                  = aws_vpc.ampx_go.id
   cidr_block              = cidrsubnet(aws_vpc.ampx_go.cidr_block, 8, count.index)
   availability_zone       = data.aws_availability_zones.available.names[count.index]
@@ -15,7 +15,7 @@ resource "aws_subnet" "public" {
 }
 
 resource "aws_subnet" "private" {
-  count                   = 2  # one per AZ
+  count                   = 2 # one per AZ
   vpc_id                  = aws_vpc.ampx_go.id
   cidr_block              = cidrsubnet(aws_vpc.ampx_go.cidr_block, 8, count.index)
   availability_zone       = data.aws_availability_zones.available.names[count.index]
@@ -80,9 +80,9 @@ resource "aws_iam_role" "ec2_role" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
-      Effect = "Allow",
+      Effect    = "Allow",
       Principal = { Service = "ec2.amazonaws.com" },
-      Action = "sts:AssumeRole"
+      Action    = "sts:AssumeRole"
     }]
   })
 }
@@ -132,10 +132,9 @@ resource "aws_security_group" "ampx_go_ec2" {
   vpc_id = aws_vpc.main.id
 
   ingress {
-    from_port       = 8080
-    to_port         = 8080
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ampx_go_lb.id]
+    from_port = 8080
+    to_port   = 8080
+    protocol  = "tcp"
   }
 
   egress {
@@ -162,7 +161,7 @@ resource "aws_route53_record" "ampx_go" {
 
 resource "aws_lb" "ampx_go" {
   name               = "ampx_go_lb"
-  internal           = false        # internet-facing
+  internal           = false # internet-facing
   load_balancer_type = "application"
   security_groups    = [aws_security_group.ampx_go_lb.id]
   subnets            = [aws_subnet.public[*].id]
@@ -225,7 +224,7 @@ resource "aws_launch_template" "ampx_go" {
       Name = "ampx_go"
     }
   }
-  user_data =  base64encode(<<-EOF
+  user_data = base64encode(<<-EOF
     #!/bin/bash
     yum update -y
 
@@ -254,13 +253,13 @@ resource "aws_launch_template" "ampx_go" {
 }
 
 resource "aws_autoscaling_group" "ampx_go" {
-  desired_capacity     = 2
-  max_size             = 5
-  min_size             = 2
+  desired_capacity = 2
+  max_size         = 5
+  min_size         = 2
   launch_template {
     id      = aws_launch_template.ampx_go.id
     version = "$Latest"
   }
   vpc_zone_identifier = aws_subnet.private[*].id
-  target_group_arns = [aws_lb_target_group.ampx_go.arn]
+  target_group_arns   = [aws_lb_target_group.ampx_go.arn]
 }
