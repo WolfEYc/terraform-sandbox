@@ -2,8 +2,7 @@ terraform {
   backend "remote" {
     organization = "wolfey-code"
     workspaces {
-      project = "Default Project"
-      name    = "overview-2"
+      name = "basics-3"
     }
   }
   required_providers {
@@ -11,17 +10,15 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 5.0"
+    }
   }
 }
 
 provider "aws" {
   region = "us-east-1"
-}
-
-resource "aws_instance" "instance_1" {
-  ami             = "ami-011899242bb902164"
-  instance_type   = "t3.micro"
-  security_groups = [aws_se]
 }
 
 data "aws_vpc" "default_vpc" {
@@ -164,12 +161,32 @@ resource "aws_lb_target_group" "instances" {
   }
 }
 
+resource "aws_instance" "instance_1" {
+  ami             = "ami-011899242bb902164"
+  instance_type   = "t3.micro"
+  security_groups = [aws_security_group.instances.name]
+  user_data       = <<-EOF
+      #!/bin/bash
+      echo "Hello, World 1" > index.html
+      python3 -m http.server 8080 &
+      EOF
+}
 resource "aws_lb_target_group_attachment" "instance_1" {
   target_group_arn = aws_lb_target_group.instances.arn
   target_id        = aws_instance.instance_1.id
   port             = 8080
 }
 
+resource "aws_instance" "instance_2" {
+  ami             = "ami-011899242bb902164"
+  instance_type   = "t3.micro"
+  security_groups = [aws_security_group.instances.name]
+  user_data       = <<-EOF
+      #!/bin/bash
+      echo "Hello, World 1" > index.html
+      python3 -m http.server 8080 &
+      EOF
+}
 resource "aws_lb_target_group_attachment" "instance_2" {
   target_group_arn = aws_lb_target_group.instances.arn
   target_id        = aws_instance.instance_2.id

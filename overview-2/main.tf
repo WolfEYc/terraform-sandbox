@@ -2,8 +2,7 @@ terraform {
   backend "remote" {
     organization = "wolfey-code"
     workspaces {
-      project = "Default Project"
-      name    = "terraform-sandbox"
+      name = "overview-2"
     }
   }
   required_providers {
