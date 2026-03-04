@@ -258,6 +258,6 @@ resource "aws_db_instance" "db_instance" {
   engine_version      = "18.3"
   instance_class      = "db.t3.micro"
   username            = "foo"
-  password            = data.aws_secretsmanager_random_password.db_password
+  password            = data.aws_secretsmanager_random_password.db_password.random_password
   skip_final_snapshot = true
 }
