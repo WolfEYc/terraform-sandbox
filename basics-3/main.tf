@@ -30,6 +30,31 @@ provider "aws" {
   }
 }
 
+resource "aws_resourcegroups_group" "basics_3" {
+  name        = "basics-3"
+  description = "temp terraform example"
+
+  resource_query {
+    query = jsonencode({
+      ResourceTypeFilters = ["AWS::AllSupported"]
+      TagFilters = [
+        {
+          Key    = "Environment"
+          Values = ["dev"]
+        },
+        {
+          Key    = "Project"
+          Values = ["basics-3"]
+        },
+      ]
+    })
+  }
+
+  tags = {
+    ManagedBy = "Terraform"
+  }
+}
+
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
 }
@@ -248,6 +273,7 @@ resource "aws_lb_target_group_attachment" "instance_2" {
   target_id        = aws_instance.instance_2.id
   port             = 8080
 }
+
 
 resource "random_password" "db" {
   length  = 16
