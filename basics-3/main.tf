@@ -249,7 +249,19 @@ resource "aws_lb_target_group_attachment" "instance_2" {
   port             = 8080
 }
 
-data "aws_secretsmanager_random_password" "db_password" {}
+resource "random_password" "db" {
+  length  = 16
+  special = true
+}
+
+resource "aws_secretsmanager_secret" "db" {
+  name = "basics-3-db-password"
+}
+
+resource "aws_secretsmanager_secret_version" "db" {
+  secret_id     = aws_secretsmanager_secret.db.id
+  secret_string = random_password.db.result
+}
 
 resource "aws_db_instance" "db_instance" {
   allocated_storage   = 20
@@ -258,6 +270,6 @@ resource "aws_db_instance" "db_instance" {
   engine_version      = "18.3"
   instance_class      = "db.t3.micro"
   username            = "foo"
-  password            = data.aws_secretsmanager_random_password.db_password.random_password
+  password            = aws_secretsmanager_secret_version.db.secret_string
   skip_final_snapshot = true
 }
