@@ -218,11 +218,11 @@ resource "aws_lb_target_group_attachment" "instance_1" {
 }
 
 resource "aws_instance" "instance_2" {
-  ami             = "ami-011899242bb902164"
-  instance_type   = "t3.micro"
-  subnet_id       = aws_subnet.private[1].id
-  security_groups = [aws_security_group.instances.name]
-  user_data       = <<-EOF
+  ami                    = "ami-011899242bb902164"
+  instance_type          = "t3.micro"
+  subnet_id              = aws_subnet.private[1].id
+  vpc_security_group_ids = [aws_security_group.instances.id]
+  user_data              = <<-EOF
       #!/bin/bash
       echo "Hello, World 1" > index.html
       python3 -m http.server 8080 &
