@@ -99,7 +99,7 @@ resource "aws_vpc_security_group_egress_rule" "instances" {
 }
 
 resource "aws_instance" "instances" {
-  count                  = aws_subnet.private.count
+  count                  = length(aws_subnet.private)
   ami                    = "ami-011899242bb902164"
   instance_type          = "t3.micro"
   subnet_id              = aws_subnet.private[count.index].id
@@ -114,7 +114,7 @@ resource "aws_instance" "instances" {
   }
 }
 resource "aws_lb_target_group_attachment" "instances" {
-  count            = aws_instance.instances.count
+  count            = length(aws_instance.instances)
   target_group_arn = aws_lb_target_group.instances.arn
   target_id        = aws_instance.instances[count.index].id
   port             = 8080
