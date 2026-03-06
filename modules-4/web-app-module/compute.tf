@@ -106,7 +106,7 @@ resource "aws_instance" "instances" {
   vpc_security_group_ids = [aws_security_group.instances.id]
   user_data              = <<-EOF
       #!/bin/bash
-      echo "Hello, World 1" > index.html
+      echo "Hello, World ${count.index}" > index.html
       python3 -m http.server 8080 &
       EOF
   tags = {
