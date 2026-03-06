@@ -19,7 +19,7 @@ variable "env" {
 variable "region" {
   description = "region to deploy to"
   type        = string
-  default     = "aws-east-1"
+  default     = "us-east-1"
 }
 
 variable "app_name" {
